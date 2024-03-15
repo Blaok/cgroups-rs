@@ -332,15 +332,31 @@ impl Cgroup {
     /// kernels 5.14+. This will fail with InvalidOperation if the 'cgroup.kill' file does
     /// not exist.
     pub fn kill(&self) -> Result<()> {
+        return self.write_v2_file("1", "cgroup.kill");
+    }
+
+    /// Freeze every process in the control group. Only supported for v2 cgroups and on
+    /// kernels 5.2+. This will fail with InvalidOperation if the 'cgroup.freeze' file does
+    /// not exist.
+    pub fn freeze(&self) -> Result<()> {
+        return self.write_v2_file("1", "cgroup.freeze");
+    }
+
+    /// Unfreeze every process in the control group. Only supported for v2 cgroups and on
+    /// kernels 5.2+. This will fail with InvalidOperation if the 'cgroup.freeze' file does
+    /// not exist.
+    pub fn unfreeze(&self) -> Result<()> {
+        return self.write_v2_file("0", "cgroup.freeze");
+    }
+
+    fn write_v2_file(&self, val: &str, file_name: &str) -> Result<()> {
         if !self.v2() {
             return Err(Error::new(CgroupVersion));
         }
 
-        let val = "1";
-        let file_name = "cgroup.kill";
         let p = self.hier.root().join(self.path.clone()).join(file_name);
 
-        // If cgroup.kill doesn't exist they're not on 5.14+ so lets
+        // If `file_name` doesn't exist they're not on new enough kernel so lets
         // surface some error the caller can check against.
         if !p.exists() {
             return Err(Error::new(InvalidOperation));
